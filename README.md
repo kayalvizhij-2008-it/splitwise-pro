@@ -175,19 +175,13 @@ splitwise-pro/
 
 ## 💳 Add Expense Form
 
-![Add Expense Form](screenshots/add-expense-form.png)
-
 ---
 
 ## 💎 Luxury UI Design
 
-![Luxury UI Design](screenshots/luxury-ui-design.png)
-
 ---
 
 ## 👥 Participant Management
-
-![Participant Management](screenshots/participant-management.png)
 
 ---
 
