@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SplitWise Pro | Luxury Expense Splitter</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #6366f1;
+      --accent: #ec4899;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --dark: #111827;
+      --light: #f9fafb;
+      --card: rgba(255,255,255,0.92);
+      --border: rgba(255,255,255,0.35);
+      --shadow: 0 10px 40px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: linear-gradient(135deg,#eef2ff,#fff1f2,#ecfeff);
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--dark);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(99,102,241,0.18), transparent 40%),
+                  radial-gradient(circle at bottom right, rgba(236,72,153,0.15), transparent 40%);
+      z-index: -1;
+      animation: drift 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes drift {
+      from { transform: translateY(0px); }
+      to { transform: translateY(-15px); }
+    }
+
+    .container {
+      width: min(1400px, 95%);
+      margin: auto;
+      padding: 30px 0 50px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .logo h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 3rem;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo p {
+      color: #4b5563;
+      margin-top: 6px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      padding: 12px 18px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.3s ease;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg,var(--primary),#8b5cf6);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--dark);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg,#ef4444,#dc2626);
+      color: white;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 25px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 25px;
+      animation: fadeUp 0.5s ease;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .card-title h2 {
+      font-size: 1.2rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2,1fr);
+      gap: 15px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 15px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid #d1d5db;
+      outline: none;
+      font-family: inherit;
+      transition: 0.3s ease;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(99,102,241,0.1);
+    }
+
+    .split-methods {
+      display: flex;
+      gap: 10px;
+      margin: 18px 0;
+      flex-wrap: wrap;
+    }
+
+    .method-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .participants {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .chip {
+      background: rgba(99,102,241,0.1);
+      color: var(--primary);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .expense-item,
+    .settlement-item {
+      background: white;
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .expense-left h3 {
+      font-size: 1rem;
+      margin-bottom: 6px;
+    }
+
+    .expense-meta {
+      color: #6b7280;
+      font-size: 0.85rem;
+    }
+
+    .amount {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stats {
+      display: grid;
+      gap: 18px;
+      position: sticky;
+      top: 20px;
+    }
+
+    .stat-box {
+      background: var(--card);
+      border-radius: 22px;
+      padding: 22px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .stat-box h3 {
+      font-size: 0.95rem;
+      color: #6b7280;
+      margin-bottom: 10px;
+    }
+
+    .stat-box p {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .positive {
+      color: var(--success);
+    }
+
+    .negative {
+      color: var(--danger);
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(2,1fr);
+      gap: 20px;
+    }
+
+    canvas {
+      width: 100% !important;
+      max-height: 320px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 30px;
+      color: #6b7280;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #6b7280;
+    }
+
+    @media(max-width: 1000px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        position: static;
+      }
+    }
+
+    @media(max-width: 768px) {
+      .grid-2,
+      .grid-3,
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .logo h1 {
+        font-size: 2.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <div class="logo">
+        <h1>SplitWise Pro</h1>
+        <p>Luxury Expense Splitter & Smart Settlement Calculator</p>
+      </div>
+
+      <div class="top-actions">
+        <button class="btn-primary" onclick="exportPDF()">📄 Export PDF</button>
+        <button class="btn-secondary" onclick="exportJSON()">📥 Export JSON</button>
+        <button class="btn-secondary" onclick="document.getElementById('importFile').click()">📤 Import</button>
+        <button class="btn-danger" onclick="clearAllData()">🗑 Clear</button>
+        <input type="file" id="importFile" hidden accept="application/json">
+      </div>
+    </header>
+
+    <div class="layout">
+
+      <main>
+
+        <section class="card">
+          <div class="card-title">
+            <h2>➕ Add Expense</h2>
+          </div>
+
+          <div class="grid-2">
+            <input type="text" id="desc" placeholder="Expense Description" value="Pizza Dinner">
+            <input type="number" id="amount" placeholder="Amount" value="1200">
+          </div>
+
+          <br>
+
+          <div class="grid-3">
+            <select id="paidBy"></select>
+            <input type="date" id="date">
+            <select id="category">
+              <option value="Food">🍕 Food</option>
+              <option value="Travel">✈ Travel</option>
+              <option value="Entertainment">🎬 Entertainment</option>
+              <option value="Shopping">🛍 Shopping</option>
+              <option value="Bills">💡 Bills</option>
+            </select>
+          </div>
+
+          <br>
+
+          <textarea id="notes" rows="3" placeholder="Optional Notes">Extra Garlic Bread</textarea>
+
+          <div class="split-methods">
+            <button class="method-btn active" onclick="setMethod('equal',this)">Equal Split</button>
+            <button class="method-btn" onclick="setMethod('custom',this)">Custom %</button>
+            <button class="method-btn" onclick="setMethod('exact',this)">Exact Amount</button>
+          </div>
+
+          <div class="participants" id="participantChips"></div>
+
+          <br>
+
+          <button class="btn-primary" style="width:100%" onclick="addExpense()">
+            Add Expense
+          </button>
+        </section>
+
+        <section class="card">
+          <div class="card-title">
+            <h2>👥 Participants</h2>
+          </div>
+
+          <div class="grid-2">
+            <input type="text" id="newParticipant" placeholder="Enter participant name">
+            <button class="btn-primary" onclick="addParticipant()">Add Participant</button>
+          </div>
+
+          <div class="participants" id="participantList"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">
+            <h2>💳 Recent Expenses</h2>
+          </div>
+
+          <div id="expenseList"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">
+            <h2>⚖ Smart Settlements</h2>
+          </div>
+
+          <div id="settlementList"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">
+            <h2>📊 Visual Analytics</h2>
+          </div>
+
+          <div class="chart-grid">
+            <canvas id="categoryChart"></canvas>
+            <canvas id="payerChart"></canvas>
+          </div>
+        </section>
+
+      </main>
+
+      <aside class="stats">
+
+        <div class="stat-box">
+          <h3>Total Expenses</h3>
+          <p id="totalExpenses">₹0</p>
+        </div>
+
+        <div class="stat-box">
+          <h3>Participants</h3>
+          <p id="participantCount">0</p>
+        </div>
+
+        <div class="stat-box">
+          <h3>Average Per Person</h3>
+          <p id="avgPerson">₹0</p>
+        </div>
+
+        <div class="stat-box">
+          <h3>Highest Spender</h3>
+          <p id="highestSpender">-</p>
+        </div>
+
+        <div class="stat-box">
+          <h3>App Owner</h3>
+          <p style="font-size:1.2rem">Kayalvizhi J</p>
+        </div>
+
+      </aside>
+
+    </div>
+
+    <footer>
+      Built with HTML, CSS, JavaScript, Chart.js & jsPDF • 2026
+    </footer>
+  </div>
+
+  <script>
+
+    const appState = {
+      participants: ['Arjun','Bhavna','Chandan','Diana','Kayalvizhi'],
+      expenses: [
+        {
+          id: 1,
+          desc: 'Pizza Night',
+          amount: 1200,
+          paidBy: 'Arjun',
+          category: 'Food',
+          notes: 'Extra cheese',
+          date: '2026-05-25',
+          splits: {
+            Arjun: 240,
+            Bhavna: 240,
+            Chandan: 240,
+            Diana: 240,
+            Kayalvizhi: 240
+          }
+        },
+        {
+          id: 2,
+          desc: 'Movie Tickets',
+          amount: 1800,
+          paidBy: 'Bhavna',
+          category: 'Entertainment',
+          notes: 'IMAX screen',
+          date: '2026-05-24',
+          splits: {
+            Arjun: 360,
+            Bhavna: 360,
+            Chandan: 360,
+            Diana: 360,
+            Kayalvizhi: 360
+          }
+        }
+      ],
+      splitMethod: 'equal'
+    };
+
+    let categoryChart;
+    let payerChart;
+
+    function init() {
+      document.getElementById('date').valueAsDate = new Date();
+
+      loadStorage();
+      renderParticipants();
+      renderExpenses();
+      renderStats();
+      renderSettlements();
+      renderCharts();
+
+      document.getElementById('importFile').addEventListener('change', importJSON);
+    }
+
+    function saveStorage() {
+      localStorage.setItem('splitwise-pro-data', JSON.stringify(appState));
+    }
+
+    function loadStorage() {
+      const data = localStorage.getItem('splitwise-pro-data');
+      if(data) {
+        const parsed = JSON.parse(data);
+        appState.participants = parsed.participants || [];
+        appState.expenses = parsed.expenses || [];
+      }
+    }
+
+    function renderParticipants() {
+      const list = document.getElementById('participantList');
+      const chips = document.getElementById('participantChips');
+      const paidBy = document.getElementById('paidBy');
+
+      list.innerHTML = '';
+      chips.innerHTML = '';
+      paidBy.innerHTML = '';
+
+      appState.participants.forEach(person => {
+
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.innerHTML = `${person}`;
+        list.appendChild(chip);
+
+        const selectChip = document.createElement('div');
+        selectChip.className = 'chip';
+        selectChip.innerHTML = `✓ ${person}`;
+        chips.appendChild(selectChip);
+
+        const option = document.createElement('option');
+        option.value = person;
+        option.textContent = person;
+        paidBy.appendChild(option);
+      });
+
+      document.getElementById('participantCount').textContent = appState.participants.length;
+    }
+
+    function addParticipant() {
+      const input = document.getElementById('newParticipant');
+      const name = input.value.trim();
+
+      if(!name) return alert('Enter participant name');
+
+      if(appState.participants.includes(name)) {
+        return alert('Participant already exists');
+      }
+
+      appState.participants.push(name);
+      input.value = '';
+
+      saveStorage();
+      renderParticipants();
+      renderStats();
+    }
+
+    function setMethod(method, btn) {
+      appState.splitMethod = method;
+
+      document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function addExpense() {
+      const desc = document.getElementById('desc').value;
+      const amount = Number(document.getElementById('amount').value);
+      const paidBy = document.getElementById('paidBy').value;
+      const category = document.getElementById('category').value;
+      const notes = document.getElementById('notes').value;
+      const date = document.getElementById('date').value;
+
+      if(!desc || !amount) {
+        return alert('Please fill required fields');
+      }
+
+      const splitAmount = amount / appState.participants.length;
+      const splits = {};
+
+      appState.participants.forEach(person => {
+        splits[person] = splitAmount;
+      });
+
+      appState.expenses.unshift({
+        id: Date.now(),
+        desc,
+        amount,
+        paidBy,
+        category,
+        notes,
+        date,
+        splits
+      });
+
+      saveStorage();
+      renderExpenses();
+      renderStats();
+      renderSettlements();
+      renderCharts();
+
+      alert('Expense added successfully!');
+    }
+
+    function renderExpenses() {
+      const container = document.getElementById('expenseList');
+
+      if(appState.expenses.length === 0) {
+        container.innerHTML = '<div class="empty">No expenses added yet.</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+
+      appState.expenses.forEach(exp => {
+
+        const div = document.createElement('div');
+        div.className = 'expense-item';
+
+        div.innerHTML = `
+          <div class="expense-left">
+            <h3>${exp.desc}</h3>
+            <div class="expense-meta">
+              Paid by ${exp.paidBy} • ${exp.category} • ${exp.date}
+            </div>
+          </div>
+
+          <div>
+            <div class="amount">₹${exp.amount}</div>
+          </div>
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    function calculateBalances() {
+      const balances = {};
+
+      appState.participants.forEach(p => balances[p] = 0);
+
+      appState.expenses.forEach(exp => {
+        balances[exp.paidBy] += exp.amount;
+
+        Object.entries(exp.splits).forEach(([person, value]) => {
+          balances[person] -= value;
+        });
+      });
+
+      return balances;
+    }
+
+    function calculateSettlements() {
+      const balances = calculateBalances();
+
+      const debtors = [];
+      const creditors = [];
+
+      Object.entries(balances).forEach(([person, amount]) => {
+        if(amount < 0) {
+          debtors.push({ person, amount: Math.abs(amount) });
+        } else if(amount > 0) {
+          creditors.push({ person, amount });
+        }
+      });
+
+      const settlements = [];
+
+      let i = 0;
+      let j = 0;
+
+      while(i < debtors.length && j < creditors.length) {
+
+        const debtor = debtors[i];
+        const creditor = creditors[j];
+
+        const settledAmount = Math.min(debtor.amount, creditor.amount);
+
+        settlements.push({
+          from: debtor.person,
+          to: creditor.person,
+          amount: settledAmount.toFixed(2)
+        });
+
+        debtor.amount -= settledAmount;
+        creditor.amount -= settledAmount;
+
+        if(debtor.amount < 1) i++;
+        if(creditor.amount < 1) j++;
+      }
+
+      return settlements;
+    }
+
+    function renderSettlements() {
+      const container = document.getElementById('settlementList');
+      const settlements = calculateSettlements();
+
+      if(settlements.length === 0) {
+        container.innerHTML = '<div class="empty">Everyone is settled up 🎉</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+
+      settlements.forEach(item => {
+
+        const div = document.createElement('div');
+        div.className = 'settlement-item';
+
+        div.innerHTML = `
+          <div>
+            <strong>${item.from}</strong>
+            owes
+            <strong>${item.to}</strong>
+          </div>
+
+          <div class="amount positive">₹${item.amount}</div>
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    function renderStats() {
+
+      const total = appState.expenses.reduce((sum,e)=> sum + e.amount,0);
+
+      document.getElementById('totalExpenses').textContent = `₹${total}`;
+
+      document.getElementById('avgPerson').textContent =
+        `₹${(total / appState.participants.length || 0).toFixed(0)}`;
+
+      const spendMap = {};
+
+      appState.participants.forEach(p => spendMap[p] = 0);
+
+      appState.expenses.forEach(exp => {
+        spendMap[exp.paidBy] += exp.amount;
+      });
+
+      const highest = Object.entries(spendMap)
+        .sort((a,b)=> b[1]-a[1])[0];
+
+      document.getElementById('highestSpender').textContent =
+        highest ? highest[0] : '-';
+    }
+
+    function renderCharts() {
+
+      const categoryTotals = {};
+      const payerTotals = {};
+
+      appState.expenses.forEach(exp => {
+
+        categoryTotals[exp.category] =
+          (categoryTotals[exp.category] || 0) + exp.amount;
+
+        payerTotals[exp.paidBy] =
+          (payerTotals[exp.paidBy] || 0) + exp.amount;
+      });
+
+      if(categoryChart) categoryChart.destroy();
+      if(payerChart) payerChart.destroy();
+
+      categoryChart = new Chart(
+        document.getElementById('categoryChart'),
+        {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(categoryTotals),
+            datasets: [{
+              data: Object.values(categoryTotals)
+            }]
+          },
+          options: {
+            plugins: {
+              title: {
+                display: true,
+                text: 'Expenses by Category'
+              }
+            }
+          }
+        }
+      );
+
+      payerChart = new Chart(
+        document.getElementById('payerChart'),
+        {
+          type: 'bar',
+          data: {
+            labels: Object.keys(payerTotals),
+            datasets: [{
+              label: 'Amount Paid',
+              data: Object.values(payerTotals)
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            plugins: {
+              title: {
+                display: true,
+                text: 'Who Paid What'
+              }
+            }
+          }
+        }
+      );
+    }
+
+    function exportJSON() {
+      const data = JSON.stringify(appState, null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'splitwise-pro-data.json';
+      a.click();
+    }
+
+    function importJSON(e) {
+      const file = e.target.files[0];
+
+      if(!file) return;
+
+      const reader = new FileReader();
+
+      reader.onload = function(event) {
+
+        const data = JSON.parse(event.target.result);
+
+        appState.participants = data.participants || [];
+        appState.expenses = data.expenses || [];
+
+        saveStorage();
+
+        renderParticipants();
+        renderExpenses();
+        renderStats();
+        renderSettlements();
+        renderCharts();
+
+        alert('Data imported successfully');
+      }
+
+      reader.readAsText(file);
+    }
+
+    function exportPDF() {
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      doc.setFontSize(22);
+      doc.text('SplitWise Pro Report', 20, 20);
+
+      doc.setFontSize(12);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 30);
+
+      let y = 45;
+
+      doc.setFontSize(16);
+      doc.text('Expenses', 20, y);
+
+      y += 10;
+
+      appState.expenses.forEach(exp => {
+        doc.text(`${exp.desc} | ${exp.paidBy} | ₹${exp.amount}`, 20, y);
+        y += 8;
+      });
+
+      y += 10;
+
+      doc.text('Settlements', 20, y);
+
+      y += 10;
+
+      calculateSettlements().forEach(settle => {
+        doc.text(`${settle.from} → ${settle.to} : ₹${settle.amount}`,20,y);
+        y += 8;
+      });
+
+      doc.save('splitwise-pro-report.pdf');
+    }
+
+    function clearAllData() {
+
+      if(confirm('Are you sure you want to clear all data?')) {
+
+        localStorage.removeItem('splitwise-pro-data');
+
+        appState.expenses = [];
+
+        renderExpenses();
+        renderStats();
+        renderSettlements();
+        renderCharts();
+      }
+    }
+
+    init();
+
+  </script>
+</body>
+</html>
